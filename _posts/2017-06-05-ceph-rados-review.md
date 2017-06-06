@@ -35,13 +35,13 @@ monitor集群通过cluster map管理所有存储节点，每个存储节点以�
 
 
 
-RADOS采用一种伪随机算法来分布存放数据，当新增设备时，会随机迁移一部分数据到新设备，以此保持存储平衡。数据存放位置通过两步计算的到，因此不需要中心化的比较重的数据分布表。
+RADOS采用一种伪随机算法来分布存放数据，当新增设备时，会随机迁移一部分数据到新设备，以此保持存储平衡。数据存放位置通过两步计算得到，因此不需要中心化的比较重的数据分布表。
 
 每个object通过object name的hash值对应到一个placement group(PG)，作为副本的基本单位。随着集群的扩展，需要周期性得调整PG数量，而且应该渐进式得增加，限制不同节点间PG迁移的量。
 
-PG通过cluster map中的CRUSH映射到相应OSD上。每个PG对应的一组r个OSD（r为副本数）记录在cluster map中。CRUSH类似于一致性hash，具有稳定性，当集群节点变化，CRUSH仅仅迁移一部分数据来保持集群平衡。
+PG通过cluster map中的CRUSH规则映射到相应OSD上。每个PG对应的一组*r*个OSD（*r*为副本数）记录在cluster map中。CRUSH类似于一致性hash，具有稳定性，当集群节点变化，CRUSH仅仅迁移一部分数据来保持集群平衡。
 
-PG提供了控制declustering replication的方法。clustering就是一个OSD把自己本地所有object数据全部都与别的OSD副本化也就是做镜像（mirroring），而OSD中以object为单位单独副本化则为complete declustering。RADOS中副本对与PG数u相关，一个PG包含多个object。通常每个OSD负责100个PG左右。因为object分布比较随机，因此不同的u通常对应不同的存储设备利用率：OSD负责的PG越多（也就是u/osd<sub>n</sub>越大）s存储分布越均衡。declustering有利于系统数据分散，而且恢复数据时可以并行化，新上的OSD负责的PG会有其它多个OSD负责，因此可以多个OSD并行同步数据。同时，通过减少OSD间重叠共享数据量，可以避免OSD同时故障时的损失，例如三副本的三个OSD坏了，如果没有PG，那所有数据都不可用，否则只是与这些OSD相关的PG不可用。
+PG提供了控制declustering replication的方法。我理解的clustering就是如果一个OSD把自己本地所有object数据全部都与另一OSD副本化，也就是做节点镜像（mirroring），而如果OSD中以一个object为单位副本化那么就是complete declustering。RADOS中副本对与PG数*u*相关，一个PG包含多个object。通常每个OSD负责100个PG左右。因为object分布比较随机，因此不同的u通常对应不同的存储设备利用率：OSD负责的PG越多（也就是*u*/osd<sub>n</sub>越大）存储分布越均衡。declustering有利于系统数据分散，而且恢复数据时可以并行化。新上的OSD负责的PG同时会有其它多个OSD负责，因此可以多个OSD并行同步数据。同时，通过减少OSD间重叠共享的数据量，可以避免OSD同时故障时的损失，例如三副本的三个OSD坏了，如果没有PG，那所有数据都不可用，否则只是与这些OSD相关的PG不可用。
 
 
 
@@ -57,9 +57,9 @@ RADOS维护两个维度的状态信息，up、down和in、out。中间状态in &
 
 
 
-向上千个节点广播cluster map不太实际，而map epoch仅对于两个通信节点来说有意义，由于这个特点monitor可以不必负责主动得向所有OSD发布最新cluster map，而可以让OSD之间交换最新的map。
+向上千个节点广播cluster map效率太低，而map epoch仅对于两个通信节点来说有意义，由于这个特点monitor可以不必负责主动地向所有OSD广播发布最新cluster map，而可以让OSD之间交换最新的map。
 
-每个OSD维护map操作的一份历史增量，用当前的epoch作为所有通信信息的tag，同时注意自己对端的OSD epoch，如果收到了对端过时的map，则给对方发送对应的增量来保持同步。同样的，如果与一个对端联系发现对方的epoch过时，会主动得发送更新增量。故障检测心跳信息的周期性交换保证了map更新信息在O(log n)时间复杂度内快速传播（n为OSD数量）。
+每个OSD维护map操作的一份历史增量，用当前的epoch作为所有通信信息的tag，同时注意自己对端的OSD epoch，如果收到了对端过时的map，则给对方发送对应的增量来保持同步。同样的，如果与一个对端联系发现对方的epoch过时，会主动得发送更新增量。故障检测心跳信息的周期性交换保证了map更新信息在O(log<sub>n</sub>)时间复杂度内快速传播（n为OSD数量）。
 
 举个栗子，一个OSD第一次启动，向monitor发消息告诉他我启动了，同时附带自己的最新map epoch，monitor标记该OSD up，并回复需要的map增量将OSD更新到最新状态。然后这个新OSD开始与自己的副本OSD通信时，会把与自己通信的所有OSD的cluster map都更新到最新状态。由于刚启动的OSD并不知道他对端确切的epoch，所以会发送一份至少30秒左右的增量信息。
 
@@ -73,7 +73,7 @@ RADOS维护两个维度的状态信息，up、down和in、out。中间状态in &
 
 cluster map中包含了节点分布信息，RADOS可以把将存储节点的副本冗余、故障检测及故障恢复任务分散到组成存储集群的OSD中去，有效利用了OSD节点的处理能力。
 
-RADOS目前实现了每个PG n路主从副本，Objects version，short-term PG log。主从副本由OSD自己进行：客户端只向主OSD提交写操作请求，主OSD负责所有副本的一致性以及更新。这样就将副本冗余的任务转移到了OSD之间，简化了客户端设计。Object versions以及short-term log可以使因间歇性节点不可用（例如：网络断了、节点挂了或重启）引起的数据恢复快速完成。
+目前在RADOS中每个PG实现了n路主从副本以及Objects version，short-term PG log机制。主从副本由OSD自己进行：客户端只向主OSD提交写操作请求，主OSD负责所有副本的一致性以及更新。这样就将副本冗余的任务转移到了OSD之间，简化了客户端设计。Object versions以及short-term log可以使因间歇性节点不可用（例如：网络断了、节点挂了或重启）引起的数据恢复快速完成。
 
 
 
@@ -97,9 +97,9 @@ RADOS实现了三种副本策略。
 
 所有的RADOS请求信息都会含有map epoch，用来保证强一致性。如果客户端由于参考过期的cluster map将请求发向了错误的OSD，该OSD会将更新增量回复给客户端使其转发到正确的节点。这样客户端可以从data node直接获取正确的map信息，保证以后的请求都正确。
 
-最然说如果由于PG的成员信息改变引起cluster map信息更新，但是只要一些旧PG成员没有收到心跳通知，他们就可能还会继续执行写操作。但是如果是PG的从节点收到了更新心跳更新了自己的cluster map，然后主节点向该从节点发写副本请求，从节点会将最新的cluster map更新增量回复给该节点。所以要求任何新加入的负责PG的OSD向所有之前负责该PG的现存活节点联系，判断该PG的正确内容，确保了先前负责该PG的OSD们收到变化通知，并在新OSD启动前停止I/O。
+有一种情况是如果由于PG的成员信息改变引起cluster map信息更新，但是只要一些旧PG成员没有收到心跳通知，他们就可能还会继续执行写操作。但是如果是PG的从节点收到了更新心跳更新了自己的cluster map，然后主节点向该从节点发写副本请求，从节点会将最新的cluster map更新增量回复给该节点。所以要求任何新加入的负责PG的OSD向所有之前负责该PG的现存活节点联系，判断该PG的正确内容，确保了先前负责该PG的OSD们收到变化通知，并在新OSD启动前停止I/O。
 
-读一致性的实现与写一致性略微不同。网络故障导致了某个OSD部分不可达（client可达、monitor不可达），该OSD上的PG成为了不可读状态，但是一些客户端持有旧的cluster map，仍认为该OSD可读。与此同时，新cluster map添加了新的OSD。为了阻止新OSD更新了数据后，旧OSD处理读请求（这时有可能读出旧数据）。我们要求每个PG对应的OSD之间要有周期性心跳检测，检测PG的可读性。就是如果处理读请求的OSD H秒（会造成H秒的不一致？由于新主接管时要得到旧主确认，所以不会有新写入）没有收到其它副本的心跳就阻塞读请求。在其它OSD接管该PG的主时，同时也要获取旧主OSD的确认（上面所说），确保他们已经知道，或者也延迟同样时间，这样别的OSD就会检测到（故障检测？）。主OSD负责写操作，可能会引起读的不一致，所以上面都是说的新主OSD加入的情况。
+读一致性的实现与写一致性略微不同。如果网络故障导致了某个OSD部分不可达（client可达、monitor不可达），该OSD上的PG成为了不可读状态，但是一些客户端持有旧的cluster map，仍认为该OSD可读。与此同时，新cluster map添加了新的OSD。为了阻止新OSD更新了数据后，旧OSD处理读请求（这时有可能读出旧数据）。我们要求每个PG对应的OSD之间要有周期性心跳检测，检测PG的可读性。就是如果处理读请求的OSD H秒（会造成H秒的不一致？由于新主接管时要得到旧主确认，所以不会有新写入）没有收到其它副本的心跳就阻塞读请求。在其它OSD接管该PG的主时，同时也要获取旧主OSD的确认（上面所说），确保他们已经知道，或者也延迟同样时间，这样别的OSD就会检测到（故障检测？）。主OSD负责写操作，才可能会引起读的不一致，所以上面都是说的新主OSD加入的情况。
 
 
 
@@ -127,7 +127,7 @@ RADOS采用一种peering算法来确保PG内容一致性或恢复数据及副本
 
 当OSD收到新的cluster map后，会检查所有增量，然后调整PG状态。所有有变化的PG都需要re-peer。同时不仅仅是当前最新的map epoch需要考虑，两个epoch中间出现过的状态也需考虑在内，例如一个OSD从某一PG中被移除然后又被添加，期间有可能发生了写操作。每一个PG的peering操作是独立进行的。
 
-peering是由PG中当前的主OSD发起的。对于含有该PG信息的**非当前主**的OSD，他会向当前的主发送一条包含本地所储存的关于PG的消息，其中包含最近的写操作，PG log的范围和最近的epoch。当主收到后，会生成一个包含所有负责该PG的OSD的prior set，包含了所有自上次成功peering负责过该PG的OSD。由于这个集合是主OSD主动收集notify，所以避免了对不负责该PG的OSD的无限期等待（例如一个中间状态的PG mapping OSD，不存储该PG任何数据）。
+peering是由PG中当前的主OSD发起的。对于含有该PG信息的所有**非当前主**的OSD，他会向当前的主发送一条包含本地所储存的关于PG的消息，其中包含最近的写操作，PG log的范围和最近的epoch。当主收到后，会生成一个包含所有负责该PG的OSD的prior set，包含了所有自上次成功peering负责过该PG的OSD。由于这个集合是主OSD主动收集notify，所以避免了对不负责该PG的OSD的无限期等待（例如一个中间状态的PG mapping OSD，它不存储该PG任何数据）。
 
 拥有了整个prior set的PG metadata，当前主OSD就可以弄清楚所有PG节点中最新的写操作，可以从prior set中获取任一块PG log并据此更新到现在所有有效副本中，如果某个OSD没有足够的PG log（例如一个全新的OSD没有PG data），则会生成全量PG content信息。
 
@@ -139,9 +139,9 @@ peering是由PG中当前的主OSD发起的。对于含有该PG信息的**非当�
 
 
 
-declustered replication的一个重要优点就是能够并行recovery，任何一个故障节点会有很多其它OSD的副本，然后每个PG选择单独的一块，从而多OSD同时恢复副本，使得recovery非常迅速。
+declustered replication的一个重要优势就是能够并行recovery，任何一个故障节点会有很多其它OSD的副本，然后每个PG选择单独的一块，从而多OSD同时恢复副本，使得recovery非常迅速。
 
-RADOS的recovery的性能瓶颈经常在读操作上，虽然每个OSD都有所有PG的metadata可以独立寻找缺失的数据，但这个策略有两个限制：1. 多OSD独立对同一PG做recovery的时候，它们可能不是同时从同一OSD上获取相同的object数据，这就导致了多次重复seek和read；2. 写副本的策略（3.1）会变得很复杂，如果从OSD丢了正在修改的的object，与其它副本的object不一致。
+RADOS的recovery的性能瓶颈经常在读操作上，虽然每个OSD都有所有PG的metadata可以独立寻找缺失的数据，但这个策略有两个限制：1. 多OSD独立对同一PG做recovery的时候，它们可能不是同时从同一OSD上获取相同的object数据，这就导致了多次重复seek和read；2. 写副本的策略（3.1）会变得很复杂，例如从OSD没有从主收到修改的的object，与其它副本的object不一致。
 
 由于这些限制，RADOS中的PG恢复由主OSD主导，像往常一样对缺失的object的操作推迟到主OSD有了本地副本。由于主OSD在peering阶段知道了哪些object是所有副本都缺失的，他可以主动的将object推送到这些副本中去，简化了副本逻辑，同时保证了缺失的object只读一次。如果主正在推送一个object（例如相应pull操作），或者它pull了一个自己缺失的object，那应该把这个object想所有需要的副本推送一次，因为现在object在内存中。因此从总体上看每个副本只被读了一次。
 
@@ -177,7 +177,7 @@ monitor集群初始化后会选举leader，然后leader决定epoch并保存到�
 
 通常情况下，monitor的工作并不多，租约机制使得每个monitor都可以提供读操作。由于OSD之间的cluster map主动推送更新，OSD很少向monitor发送读cluster map请求，客户端也只在OSD超时或故障时才会请求读新map。
 
-Cluster map的写操作会转发给leader，leader会聚合写操作。如果出现大规模故障时则可能对leader造成一些压力，例如每个OSD负责u个PG然后f个OSD故障，就会有uf个故障报告。为了防止这种情况，OSD的心跳信息是半随机的间隔时间，并且限制了故障报告上限，非leader monitor只会向leader转发一次故障报告。这些机制实现保证了monitor的可扩展性。
+Cluster map的写操作会转发给leader，leader会聚合写操作。如果出现大规模故障时则可能对leader造成一些压力，例如每个OSD负责*u*个PG然后*f*个OSD故障，就会有*uf*个故障报告。为了防止这种情况，OSD的心跳信息是半随机的间隔时间，并且限制了故障报告上限，非leader monitor只会向leader转发一次故障报告。这些机制实现保证了monitor的可扩展性。
 
 
 
