@@ -31,13 +31,13 @@ Cluster map由buckets和devices构成，每一项都可以配置权重。可以�
 
 ### 2.2 副本映射过程
 
-![CBF294C7-A8B5-4A58-8375-C4921B273423](https://ws2.sinaimg.cn/large/006tNc79ly1fgaghyjhn1j30b704ft9o.jpg)图1
+![CBF294C7-A8B5-4A58-8375-C4921B273423](https://ws2.sinaimg.cn/large/006tNc79ly1fgaghyjhn1j30b704ft9o.jpg)图 2.1
 
-![1E237332-EAE7-4883-B73B-0F32181C564E](https://ws4.sinaimg.cn/large/006tNc79ly1fgagkhd1dfj30rj0cln0t.jpg)图2
+![1E237332-EAE7-4883-B73B-0F32181C564E](https://ws4.sinaimg.cn/large/006tNc79ly1fgagkhd1dfj30rj0cln0t.jpg)图 2.2
 
 我们可以配置多个placement rule来适应多种场景下的副本映射，例如两副本、三副本策略，或者是EC编码、奇偶校验等等。每种rule规定了一系列操作最后从层级化的cluster map中取出相应的设备号。
 
-举个映射过程的例子，如图1所示的rule，此rule的执行过程如图2所示。首先由root开始，select(1, row)选出一个row(row2)，接下来的select(3, cabinet)选出三个属于row2的不同的cabinet(cab21, cab23, cab24)，最后的select(1, disk)会在之前选出的三个cabinet里分别选择一个disk然后输出。
+举个映射过程的例子，如*图 2.1*所示的rule，此rule的执行过程如*图 2.2*所示。首先由root开始，select(1, row)选出一个row(row2)，接下来的select(3, cabinet)选出三个属于row2的不同的cabinet(cab21, cab23, cab24)，最后的select(1, disk)会在之前选出的三个cabinet里分别选择一个disk然后输出。
 
 
 
@@ -53,9 +53,19 @@ Cluster map由buckets和devices构成，每一项都可以配置权重。可以�
 
 #### 3.2.2 Replica Ranks
 
-CRUSH在奇偶校验和EC编码容灾方案下与主从副本不太一样，主从副本方案里，如果主挂了，剩下的从由于拥有数据副本，可以被选为新主，所以CRUSH可以用“first n方法” *r' = r + f* 将节点选择简单的”前移“。
 
-但是在奇偶校验和EC编码方案中，由于每个节点会存放object的不同部分，所以副本层级序列非常重要。因此如果遇到故障节点，需要用*r' = r + f<sub>r</sub>n* （r为当前失败次数）来将后面非本层级的候选节点”前移“。
+
+![](https://ws3.sinaimg.cn/large/006tKfTcly1fgg83lm8yfj308z073wew.jpg)图 3.1
+
+
+
+![](https://ws3.sinaimg.cn/large/006tKfTcly1fgg84nx93aj306z07wq3f.jpg)图 3.2
+
+
+
+CRUSH在奇偶校验和EC编码容灾方案下与主从副本不太一样，主从副本方案里，如果主挂了，剩下的从由于拥有完整的数据副本，可以被选为新主，所以CRUSH可以用“first n方法” *r' = r + f* （*f*为当前失败次数，*r*为当前候选的副本号）将节点选择简单的”前移“，直接将后续的新节点选为该PG的新成员，如*图 3.1*所示。
+
+但是在奇偶校验和EC编码方案中，由于每个节点会存放object的不同部分，所以副本层级序列非常重要。因此如果遇到故障节点，需要用*r' = r + f<sub>r</sub>n* （*f<sub>r</sub>*为当前失败次数，*r同上*）来将后面非本层级的候选节点”前移“作为该PG的新成员，如*图 3.2*所示。
 
 
 
