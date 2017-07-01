@@ -3,6 +3,8 @@ layout: post
 title: C++11中的Rvalue references, Move semantics
 ---
 
+* contents
+{:toc}
 
 
 右值引用、移动语义是C++11中新增的一个非常重要的概念。

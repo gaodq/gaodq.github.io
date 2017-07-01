@@ -22,10 +22,16 @@
       <div class="container content">
         {{ content }}
       </div>
+
+      <div id="back-top">
+        <a href="#top" title="back-top"></a>
+      </div>
+
     </div>
 
     <label for="sidebar-checkbox" class="sidebar-toggle"></label>
 
+    <script type="text/javascript" src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
     <script>
       (function(document) {
         var toggle = document.querySelector('.sidebar-toggle');
@@ -42,6 +48,25 @@
           checkbox.checked = false;
         }, false);
       })(document);
+    </script>
+
+    <script>
+      $("#back-top").hide();
+      $(document).ready(function () {
+        $(window).scroll(function () {
+          if ($(this).scrollTop() > 100) {
+            $('#back-top').fadeIn();
+          } else {
+            $('#back-top').fadeOut();
+          }
+        });
+        $('#back-top a').click(function () {
+          $('body,html').animate({
+            scrollTop: 0
+          }, 100);
+          return false;
+        });
+      });
     </script>
   </body>
 </html>

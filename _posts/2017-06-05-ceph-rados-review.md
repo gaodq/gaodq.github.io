@@ -3,8 +3,11 @@ layout: post
 title: Ceph RADOS Review
 ---
 
-##  1. 总体介绍
+* contents
+{:toc}
 
+
+##  1. 总体介绍
 
 
 RADOS(Reliable Autonomic Distributed Object Store)是Ceph的基石，旨在提供一个可靠、高性能以及可扩展的PB级的对象存储集群，可以向上提供文件系统、对象存储和块存储功能。RADOS采用中心节点monitor集群管理集群元信息，同时又将部分元信息管理任务分散到存储节点及客户端中，减轻了中心节点的压力。

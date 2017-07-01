@@ -10,6 +10,8 @@ url:                 https://gaodq.github.io
 baseurl:             ''
 paginate:            5
 
+markdown:            kramdown
+
 # About/contact
 author:
   name:              gaodq

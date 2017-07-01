@@ -3,8 +3,10 @@ layout: post
 title: Ceph CRUSH Review
 ---
 
-## 1. 介绍
+* contents
+{:toc}
 
+## 1. 介绍
 
 
 Clinet或OSD从monitor拉取集群拓扑信息（cluster map）以及相应的分片规则（placement rule）。根据这个直接计算出对象x所在的OSD位置。
