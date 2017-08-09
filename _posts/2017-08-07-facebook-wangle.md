@@ -59,7 +59,7 @@ class StringCodec : public Handler<std::unique_ptr<folly::IOBuf>, std::string,
 };
 ```
 
-在上例中`Rin = std::unique_ptr<folly::IOBuf>` `Rout = std::string` `Win = std::string` `Wout = std::unique_ptr<folly::IOBuf>`。
+在上例中Handler模板实参为`Rin = std::unique_ptr<folly::IOBuf>` `Rout = std::string` `Win = std::string` `Wout = std::unique_ptr<folly::IOBuf>`。
 
 作为它之后的EchoHandler定义为所有模板实参都为`std::string`，和StringCodec的Rout，Win对应了起来，也就是说EchoHandler的read()实现会接收由StringCodec通过fireRead(std::string)发来的数据，write()实现在自己操作结束后需要通过fireWrite(std::string)向StringCodec发送数据。
 
