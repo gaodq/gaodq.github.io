@@ -79,7 +79,15 @@ procyon性能在qps跑分上来看是下降的（6%左右），如下图所示�
 
 ![image-20180411092711267](/public/img/networkframe/performance_with_longreq.png)
 
-有一个奇怪的现象，就是在网卡跑满后，procyon的CPU利用率要高于pink，所以qps也会高不少，同时上下文切换数量也比较高，这里的原因还不太清楚。
+此时我们对正常请求的的延迟测试也表示长请求会影响到正常的请求处理。下图（a）是在pink中的测试结果，（b）是procyon的测试结果。
+
+>Xeon E5-2630，24c，160GB Mem，1000 Mbps，ServerIOThread 10 thread，100 client，1% slow request。
+>
+>./redis-benchmark -n 100000 -c 20 -r 1000 -t set -l -d 4
+
+![屏幕快照 2018-04-11 10.18.43](/public/img/networkframe/latency.png)
+
+但是有一个奇怪的现象，就是在网卡跑满后，procyon的CPU利用率要高于pink，所以qps也会高不少，同时上下文切换数量也比较高，这里的原因还不太清楚。
 
 ### 总结
 
@@ -93,10 +101,10 @@ procyon参考了brpc[6]和wangle[7]的一部分设计。其中brpc通过bthread�
 
 ### 参考
 
-1. https://github.com/PikaLabs/pink
-2. 占坑
+1. [https://github.com/PikaLabs/pink](https://github.com/PikaLabs/pink)
+2. [https://github.com/gaodq/procyon](https://github.com/gaodq/procyon)
 3. [talk about event based concurrency](http://baotiao.github.io/2016/11/26/concurrency)
 4. [SEDA: An Architecture for Well-Conditioned, Scalable Internet Services](http://www.sosp.org/2001/papers/welsh.pdf)
-5. https://github.com/facebook/folly
-6. https://github.com/brpc/brpc
-7. https://github.com/facebook/wangle
+5. [https://github.com/facebook/folly](https://github.com/facebook/folly)
+6. [https://github.com/brpc/brpc](https://github.com/brpc/brpc)
+7. [https://github.com/facebook/wangle](https://github.com/facebook/wangle)
