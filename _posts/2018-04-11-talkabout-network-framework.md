@@ -99,6 +99,8 @@ procyon参考了brpc[6]和wangle[7]的一部分设计。其中brpc通过bthread�
 
 上文也提到不少有关于减少内存拷贝的优化，但在存储类应用中，系统的性能瓶颈往往在磁盘I/O上，内存拷贝相对来说非常快，一个单机存储类应用最大qps一般在200K以下，而网络框架提供的性能远远超过需求，所以有很大的空间可以损失一些性能来换取一些更便捷的功能。
 
+在wangle和brpc中都提供了异步客户端功能。在pika、zeppelin中客户端用于发送binlog，不需要接收回复；在floyd中客户端用户rpc请求，需要同步接收回复。所以虽然异步客户端能让跑分更高，但需要异步的场景不多，感觉异步客户端用处不大。
+
 ### 参考
 
 1. [https://github.com/PikaLabs/pink](https://github.com/PikaLabs/pink)
