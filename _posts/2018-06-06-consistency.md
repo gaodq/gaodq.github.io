@@ -42,3 +42,10 @@ Consistency，一致性这个词经常见到，并且还是在不同的场景下
 ## ACID
 
 这里的consistency是在事务中的概念，这里更多的是应用方面的概念，不是由数据库层面来保证的。应用应该利用数据库的Atomic及Isolation性质来保证自己数据的一致性。
+
+## 参考
+
+1. [Strong consistency models](https://aphyr.com/posts/313-strong-consistency-models)
+2. 《Designing Data-Intensive Applications》
+3. [分布式系统一致性的发展历史 (一)](http://danielw.cn/history-of-distributed-systems-1)
+4. [分布式系统一致性的发展历史 (二)](http://danielw.cn/history-of-distributed-systems-2)
